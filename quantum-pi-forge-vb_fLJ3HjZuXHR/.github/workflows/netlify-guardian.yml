@@ -1,0 +1,86 @@
+name: Netlify Guardian
+
+on:
+  push:
+  schedule:
+    - cron: "*/15 * * * *"
+
+jobs:
+  protect-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y curl jq
+
+      - name: Netlify Domain Protection
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          SITE_ID_QPF: ${{ secrets.NETLIFY_QPF_SITE_ID }}
+          DOMAIN: "quantumpiforge.com"
+        run: |
+          echo "Checking domain assignment..."
+
+          CURRENT_SITE=$(curl -s \
+            -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+            https://api.netlify.com/api/v1/dns_zones | jq -r ".[] | select(.name==\"$DOMAIN\") | .site_id")
+
+          if [ "$CURRENT_SITE" != "$SITE_ID_QPF" ]; then
+            echo "Domain is NOT correctly assigned. Fixing..."
+            curl -s -X DELETE \
+              -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+              https://api.netlify.com/api/v1/sites/$CURRENT_SITE/domains/$DOMAIN || true
+
+            curl -s -X DELETE \
+              -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+              https://api.netlify.com/api/v1/sites/$CURRENT_SITE/domains/www.$DOMAIN || true
+
+            curl -s -X POST \
+              -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"domain\":\"$DOMAIN\"}" \
+              https://api.netlify.com/api/v1/sites/$SITE_ID_QPF/domains
+
+            curl -s -X POST \
+              -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"domain\":\"www.$DOMAIN\"}" \
+              https://api.netlify.com/api/v1/sites/$SITE_ID_QPF/domains
+
+            echo "Domain reassigned to Quantum Pi Forge."
+          else
+            echo "Domain already assigned correctly."
+          fi
+
+      - name: Check Validation File
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          SITE_ID_QPF: ${{ secrets.NETLIFY_QPF_SITE_ID }}
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://quantumpiforge.com/validation-key.txt)
+          if [ "$STATUS" != "200" ]; then
+            echo "Validation file missing — redeploying..."
+            curl -X POST \
+              -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+              https://api.netlify.com/api/v1/sites/$SITE_ID_QPF/builds
+          else
+            echo "Validation file OK."
+          fi
+
+      - name: Check Production URL
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          SITE_ID_QPF: ${{ secrets.NETLIFY_QPF_SITE_ID }}
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://quantumpiforge.com)
+          if [ "$STATUS" != "200" ]; then
+            echo "Production site NOT healthy — redeploying..."
+            curl -X POST \
+              -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+              https://api.netlify.com/api/v1/sites/$SITE_ID_QPF/builds
+          else
+            echo "Production site healthy."
+          fi
