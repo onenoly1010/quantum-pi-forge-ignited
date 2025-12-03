@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Pi Forge - Live Mainnet Shield</title>
+    <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+    <style>
+        body {
+            background: #0a0a0a;
+            color: #00ff9d;
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #00ff9d;
+            border-bottom: 2px solid #00ff9d;
+            padding-bottom: 10px;
+        }
+        .status-panel {
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .btn {
+            background: #00ff9d;
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px;
+        }
+        .btn:hover {
+            background: #00cc7d;
+        }
+        .btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            height: 200px;
+            overflow-y: auto;
+            text-align: left;
+            font-size: 14px;
+        }
+        .success { color: #00ff9d; }
+        .warning { color: #ffaa00; }
+        .error { color: #ff4444; }
+        .demo-badge {
+            background: #ffaa00;
+            color: #000;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ QUANTUM PI FORGE - IGNITED <span class="demo-badge">LIVE MAINNET</span></h1>
+        
+        <div class="status-panel">
+            <p>SYSTEM STATUS: <span id="system-status" class="warning">INITIALIZING...</span></p>
+            <p>USER: <span id="user-status">Not Authenticated</span></p>
+            <p>NETWORK: <span id="network-status">Pi Mainnet</span></p>
+        </div>
+
+        <button id="connect-btn" class="btn">ACTIVATE SHIELD - CONNECT PI WALLET</button>
+        <button id="test-btn" class="btn" disabled>TEST PROTECTION - SIMULATE ATTACK</button>
+        
+        <div class="log" id="console-log">
+            > System initialized - Ready for Pi Mainnet connection<br>
+        </div>
+    </div>
+
+    <script>
+        const BACKEND_URL = "YOUR_RAILWAY_URL_HERE"; // Will be updated after deployment
+        
+        const log = (message, type = 'info') => {
+            const console = document.getElementById('console-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const colorClass = type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'success';
+            console.innerHTML = `> [${timestamp}] <span class="${colorClass}">${message}</span><br>` + console.innerHTML;
+        };
+
+        // Initialize Pi SDK with Mainnet
+        const initPiSDK = async () => {
+            try {
+                await window.Pi.init({ version: "2.0", sandbox: false });
+                log("Pi SDK Initialized - MAINNET MODE ACTIVE", 'success');
+                document.getElementById('system-status').textContent = 'READY';
+                document.getElementById('system-status').className = 'success';
+            } catch (error) {
+                log(`SDK Error: ${error.message}`, 'error');
+            }
+        };
+
+        // Connect Pi Wallet
+        document.getElementById('connect-btn').onclick = async () => {
+            try {
+                log("Authenticating with Pi Network...", 'info');
+                const auth = await window.Pi.authenticate(['username', 'payments'], onIncompletePaymentFound);
+                
+                log(`✅ Authenticated as: @${auth.user.username}`, 'success');
+                document.getElementById('user-status').textContent = `@${auth.user.username}`;
+                document.getElementById('connect-btn').disabled = true;
+                document.getElementById('test-btn').disabled = false;
+                document.getElementById('connect-btn').textContent = 'SHIELD ACTIVE';
+                
+            } catch (error) {
+                log(`Authentication Failed: ${error.message}`, 'error');
+            }
+        };
+
+        // Test Protection System
+        document.getElementById('test-btn').onclick = async () => {
+            const testScenarios = [
+                { user: "GABT7EMPGNCQSZM22DIYC4FNKHUVJTXITUF6Y5HNIWPU4GA7BHT4GC5G", amount: 1.0, description: "Blacklisted Address" },
+                { user: "test_clean", amount: 0.0005, description: "Dust Attack" },
+                { user: "test_clean", amount: 5.0, description: "Clean Transaction" }
+            ];
+
+            for (const scenario of testScenarios) {
+                log(`Testing: ${scenario.description}...`, 'info');
+                
+                try {
+                    const response = await fetch(`${BACKEND_URL}/api/analyze`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(scenario)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.status === "BLOCKED") {
+                        log(`🚫 BLOCKED: ${scenario.description} - ${result.message}`, 'warning');
+                    } else {
+                        log(`✅ CLEAR: ${scenario.description} - ${result.message}`, 'success');
+                    }
+                } catch (error) {
+                    log(`❌ Test Failed: ${error.message}`, 'error');
+                }
+            }
+        };
+
+        // Handle incomplete payments
+        function onIncompletePaymentFound(payment) {
+            log(`Intercepted Incomplete Payment: ${payment.identifier}`, 'warning');
+        }
+
+        // Initialize on load
+        initPiSDK();
+    </script>
+</body>
+</html>
