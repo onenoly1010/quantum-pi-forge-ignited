@@ -13,7 +13,7 @@ jobs:
     name: Triage New Issue
     runs-on: ubuntu-latest
     if: github.event.action == 'opened'
-    
+
     steps:
       - name: Add triage label
         uses: actions/github-script@v6
@@ -36,30 +36,30 @@ jobs:
             const body = issue.body || '';
             const title = issue.title || '';
             const labels = [];
-            
+
             // Auto-detect issue type from content
-            const isBug = title.toLowerCase().includes('bug') || 
+            const isBug = title.toLowerCase().includes('bug') ||
                           body.toLowerCase().includes('error') ||
                           body.toLowerCase().includes('exception');
-            
+
             const isFeature = title.toLowerCase().includes('feature') ||
                               title.toLowerCase().includes('enhancement') ||
                               body.toLowerCase().includes('would be nice');
-            
+
             const isQuestion = title.toLowerCase().includes('question') ||
                                title.toLowerCase().includes('how to') ||
                                title.toLowerCase().includes('help');
-            
+
             const isSecurity = title.toLowerCase().includes('security') ||
                                title.toLowerCase().includes('vulnerability') ||
                                body.toLowerCase().includes('exploit');
-            
+
             // Add appropriate labels
             if (isBug) labels.push('bug');
             if (isFeature) labels.push('enhancement');
             if (isQuestion) labels.push('question');
             if (isSecurity) labels.push('security');
-            
+
             // Detect component from content
             if (body.includes('server.js') || body.includes('backend') || body.includes('API')) {
               labels.push('backend');
@@ -73,7 +73,7 @@ jobs:
             if (body.includes('blacklist') || body.includes('security')) {
               labels.push('security');
             }
-            
+
             // Add labels
             if (labels.length > 0) {
               try {
@@ -96,13 +96,13 @@ jobs:
             const issue = context.payload.issue;
             const body = issue.body || '';
             const title = issue.title || '';
-            
+
             const isSecurity = title.toLowerCase().includes('security') ||
                                title.toLowerCase().includes('vulnerability') ||
                                body.toLowerCase().includes('exploit') ||
                                body.toLowerCase().includes('injection') ||
                                body.toLowerCase().includes('xss');
-            
+
             if (isSecurity) {
               // Add priority label
               try {
@@ -115,7 +115,7 @@ jobs:
               } catch (error) {
                 console.log('Could not add priority label:', error.message);
               }
-              
+
               // Add comment for security issues
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
@@ -137,14 +137,14 @@ jobs:
             // Check if this is a first-time contributor
             const issue = context.payload.issue;
             const issueAuthor = issue.user.login;
-            
+
             const { data: issues } = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               creator: issueAuthor,
               state: 'all'
             });
-            
+
             // If this is their first issue
             if (issues.length === 1) {
               await github.rest.issues.createComment({
@@ -169,7 +169,7 @@ jobs:
     name: Route to Experts
     runs-on: ubuntu-latest
     if: github.event.action == 'labeled'
-    
+
     steps:
       - name: Route based on labels
         uses: actions/github-script@v6
@@ -178,10 +178,10 @@ jobs:
           script: |
             const issue = context.payload.issue;
             const label = context.payload.label;
-            
+
             let routingComment = '## 🔀 Agent Routing\n\n';
             routingComment += `This issue has been labeled as **${label.name}**.\n\n`;
-            
+
             // Map labels to routing instructions
             const routingMap = {
               'security': '🔒 Routed to security team for immediate attention',
@@ -194,10 +194,10 @@ jobs:
               'good first issue': '🌱 Great for new contributors!',
               'help wanted': '🙋 Community help requested'
             };
-            
+
             if (routingMap[label.name]) {
               routingComment += routingMap[label.name] + '\n\n';
-              
+
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -211,7 +211,7 @@ jobs:
     runs-on: ubuntu-latest
     # Run daily at midnight
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    
+
     steps:
       - name: Find untriaged issues
         uses: actions/github-script@v6
@@ -225,13 +225,13 @@ jobs:
               state: 'open',
               per_page: 100
             });
-            
+
             const now = new Date();
             const twoDaysAgo = new Date(now - 2 * 24 * 60 * 60 * 1000);
-            
+
             for (const issue of issues) {
               const createdAt = new Date(issue.created_at);
-              
+
               // If issue is older than 2 days and still needs triage
               if (createdAt < twoDaysAgo) {
                 await github.rest.issues.createComment({
@@ -242,7 +242,7 @@ jobs:
                         'This issue has been waiting for triage for more than 2 days.\n' +
                         'A maintainer will review this soon. Thank you for your patience!'
                 });
-                
+
                 // Add high priority if very old
                 const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
                 if (createdAt < weekAgo) {

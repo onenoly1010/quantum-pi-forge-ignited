@@ -129,12 +129,12 @@ body:
       value: |
         ---
         **Agent Routing Information**
-        
+
         This feature request will be automatically:
         - 🏷️ **Categorized** based on component and priority
         - 🤖 **Analyzed** for feasibility by our planning agent
         - 📊 **Scoped** with estimated effort and impact
         - 💡 **Suggestions** provided for implementation approach
         - 👥 **Discussed** with maintainers for roadmap inclusion
-        
+
         You'll be notified as the feature progresses through planning and development.

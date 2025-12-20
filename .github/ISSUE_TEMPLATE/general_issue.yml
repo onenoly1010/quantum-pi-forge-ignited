@@ -79,11 +79,11 @@ body:
       value: |
         ---
         **Agent Routing**
-        
+
         General issues are:
         - 🏷️ **Categorized** automatically
         - 📚 **Linked** to relevant documentation
         - 💬 **Routed** to discussions if appropriate
         - 👥 **Reviewed** by maintainers
-        
+
         For urgent issues, please use the Bug Report template.

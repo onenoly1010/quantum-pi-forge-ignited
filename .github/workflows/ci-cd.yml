@@ -14,7 +14,7 @@ jobs:
   code-quality:
     name: Code Quality Analysis
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -57,7 +57,7 @@ jobs:
     permissions:
       security-events: write
       contents: read
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -94,7 +94,7 @@ jobs:
   test-backend:
     name: Test Backend API
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -125,17 +125,17 @@ jobs:
           node server.js &
           SERVER_PID=$!
           sleep 5
-          
+
           # Test health endpoint
           echo "Testing health endpoint..."
           curl -f http://localhost:3000/ || echo "Health check failed"
-          
+
           # Test analyze endpoint
           echo "Testing analyze endpoint..."
           curl -X POST http://localhost:3000/api/analyze \
             -H "Content-Type: application/json" \
             -d '{"user":"test_user","amount":1.0}' || echo "Analyze endpoint failed"
-          
+
           # Kill server
           kill $SERVER_PID || true
         continue-on-error: true
@@ -144,7 +144,7 @@ jobs:
   validate-frontend:
     name: Validate Frontend
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -174,7 +174,7 @@ jobs:
     name: Agent Code Review
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -189,20 +189,20 @@ jobs:
       - name: Analyze code changes
         run: |
           echo "Files changed: ${{ steps.changed-files.outputs.files }}"
-          
+
           # Check for common issues
           echo "Checking for common issues..."
-          
+
           # Check for console.log in production code
           if git diff ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep -q "console.log"; then
             echo "⚠️ Warning: console.log statements found in changes"
           fi
-          
+
           # Check for TODO comments
           if git diff ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep -qi "TODO"; then
             echo "⚠️ Info: TODO comments found in changes"
           fi
-          
+
           # Check for hardcoded URLs
           if git diff ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep -E "(http://|https://)" | grep -v "//"; then
             echo "⚠️ Warning: Hardcoded URLs found - consider using environment variables"
@@ -226,7 +226,7 @@ jobs:
     name: Deployment Readiness
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -234,12 +234,12 @@ jobs:
       - name: Check environment configuration
         run: |
           echo "Checking deployment readiness..."
-          
+
           # Check for required files
           [ -f "quantum-pi-forge-vb_fLJ3HjZuXHR/server.js" ] && echo "✓ Server file exists"
           [ -f "quantum-pi-forge-vb_fLJ3HjZuXHR/package.json" ] && echo "✓ Package.json exists"
           [ -f "quantum-pi-forge-vb_fLJ3HjZuXHR/blacklist.json" ] && echo "✓ Blacklist.json exists"
-          
+
           # Check package.json for start script
           if [ -f "quantum-pi-forge-vb_fLJ3HjZuXHR/package.json" ]; then
             grep -q "\"start\"" quantum-pi-forge-vb_fLJ3HjZuXHR/package.json && echo "✓ Start script defined"
