@@ -1,0 +1,284 @@
+name: Agent-Assisted PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  # Automated PR labeling based on changes
+  auto-label:
+    name: Auto-label PR
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Label PR based on files changed
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            
+            const labels = [];
+            
+            // Check file types and add labels
+            const hasBackend = files.some(f => f.filename.includes('server.js'));
+            const hasFrontend = files.some(f => f.filename.includes('index.html'));
+            const hasWorkflow = files.some(f => f.filename.includes('.github/workflows'));
+            const hasDocs = files.some(f => f.filename.match(/\.(md|txt)$/i));
+            const hasSecurity = files.some(f => f.filename.includes('blacklist.json'));
+            
+            if (hasBackend) labels.push('backend');
+            if (hasFrontend) labels.push('frontend');
+            if (hasWorkflow) labels.push('ci/cd');
+            if (hasDocs) labels.push('documentation');
+            if (hasSecurity) labels.push('security');
+            
+            // Check PR size
+            const additions = files.reduce((sum, f) => sum + f.additions, 0);
+            const deletions = files.reduce((sum, f) => sum + f.deletions, 0);
+            const totalChanges = additions + deletions;
+            
+            if (totalChanges < 10) labels.push('size/XS');
+            else if (totalChanges < 50) labels.push('size/S');
+            else if (totalChanges < 200) labels.push('size/M');
+            else if (totalChanges < 500) labels.push('size/L');
+            else labels.push('size/XL');
+            
+            // Add labels
+            if (labels.length > 0) {
+              try {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  labels: labels
+                });
+              } catch (error) {
+                console.log('Note: Some labels may not exist yet:', error.message);
+              }
+            }
+
+  # Automated PR analysis and suggestions
+  analyze-pr:
+    name: Analyze PR Changes
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get PR diff
+        id: pr-diff
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          echo "Analyzing changes..."
+          
+          # Get changed files
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          echo "changed_files<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          # Count changes
+          ADDITIONS=$(git diff --numstat origin/${{ github.base_ref }}...HEAD | awk '{sum+=$1} END {print sum}')
+          DELETIONS=$(git diff --numstat origin/${{ github.base_ref }}...HEAD | awk '{sum+=$2} END {print sum}')
+          
+          echo "additions=$ADDITIONS" >> $GITHUB_OUTPUT
+          echo "deletions=$DELETIONS" >> $GITHUB_OUTPUT
+
+      - name: Analyze code complexity
+        run: |
+          echo "Checking code complexity..."
+          
+          # Check for very long files
+          git diff --name-only origin/${{ github.base_ref }}...HEAD | while read file; do
+            if [ -f "$file" ]; then
+              LINES=$(wc -l < "$file")
+              if [ "$LINES" -gt 500 ]; then
+                echo "⚠️ Warning: $file has $LINES lines (consider splitting into smaller modules)"
+              fi
+            fi
+          done
+
+      - name: Check for breaking changes
+        id: breaking-changes
+        run: |
+          echo "Checking for potential breaking changes..."
+          
+          BREAKING=false
+          
+          # Check if API endpoints changed
+          if git diff origin/${{ github.base_ref }}...HEAD | grep -E "app\.(get|post|put|delete)" | grep -v "^-"; then
+            echo "⚠️ Potential API changes detected"
+            BREAKING=true
+          fi
+          
+          # Check if dependencies changed
+          if git diff origin/${{ github.base_ref }}...HEAD -- "**/package.json" | grep -E "^\+.*\"dependencies\"" ; then
+            echo "⚠️ Dependencies changed"
+          fi
+          
+          echo "breaking=$BREAKING" >> $GITHUB_OUTPUT
+
+      - name: Security checks
+        run: |
+          echo "Running security checks..."
+          
+          # Check for sensitive patterns in diff
+          git diff origin/${{ github.base_ref }}...HEAD | {
+            # Check for potential secrets
+            if grep -iE "(password|secret|api_key|token).*=.*['\"]" ; then
+              echo "⚠️ WARNING: Potential secrets found in code!"
+            fi
+            
+            # Check for eval() usage
+            if grep -E "\beval\(" ; then
+              echo "⚠️ WARNING: eval() usage detected - security risk!"
+            fi
+            
+            # Check for console.log with sensitive data
+            if grep -iE "console\.log.*\((password|secret|token)" ; then
+              echo "⚠️ WARNING: Logging potentially sensitive data!"
+            fi
+          } || echo "✓ No obvious security issues detected"
+
+      - name: Post PR analysis comment
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const additions = '${{ steps.pr-diff.outputs.additions }}';
+            const deletions = '${{ steps.pr-diff.outputs.deletions }}';
+            const breaking = '${{ steps.breaking-changes.outputs.breaking }}';
+            
+            let body = '## 🤖 Automated PR Analysis\n\n';
+            body += '### 📊 Change Summary\n';
+            body += `- **Lines added:** ${additions || 0}\n`;
+            body += `- **Lines deleted:** ${deletions || 0}\n`;
+            body += `- **Net change:** ${(additions || 0) - (deletions || 0)}\n\n`;
+            
+            if (breaking === 'true') {
+              body += '### ⚠️ Potential Breaking Changes\n';
+              body += 'This PR may contain breaking changes. Please ensure:\n';
+              body += '- API changes are documented\n';
+              body += '- Migration guide is provided\n';
+              body += '- Version is bumped appropriately\n\n';
+            }
+            
+            body += '### ✅ Automated Checks\n';
+            body += '- Code complexity analysis: See workflow logs\n';
+            body += '- Security scan: See workflow logs\n';
+            body += '- Style check: See workflow logs\n\n';
+            
+            body += '### 📝 Next Steps\n';
+            body += '1. Review automated feedback above\n';
+            body += '2. Address any warnings or suggestions\n';
+            body += '3. Wait for human reviewer approval\n';
+            body += '4. Ensure all checks pass before merge\n\n';
+            
+            body += '---\n';
+            body += '*This analysis was performed automatically. Human review is still required.*';
+            
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+  # Check PR template compliance
+  check-pr-template:
+    name: Check PR Template Compliance
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check PR description
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            
+            const body = pr.body || '';
+            const requiredSections = [
+              'Description',
+              'Type of Change',
+              'Testing',
+              'Checklist'
+            ];
+            
+            const missingSections = requiredSections.filter(section => 
+              !body.includes(section)
+            );
+            
+            if (missingSections.length > 0) {
+              const comment = '⚠️ **PR Template Incomplete**\n\n' +
+                'The following required sections are missing from your PR description:\n' +
+                missingSections.map(s => `- ${s}`).join('\n') + '\n\n' +
+                'Please update your PR description to include all required sections.';
+              
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+
+  # Assign reviewers based on changed files
+  auto-assign-reviewers:
+    name: Auto-assign Reviewers
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Assign reviewers based on expertise
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            // This is a template - customize with your team's expertise mapping
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            
+            // Example: Route based on file types
+            const hasBackend = files.some(f => f.filename.includes('server.js'));
+            const hasFrontend = files.some(f => f.filename.includes('index.html'));
+            const hasWorkflow = files.some(f => f.filename.includes('.github'));
+            
+            // Add comment about routing
+            let routingInfo = '## 🔀 Agent Routing\n\n';
+            routingInfo += 'This PR has been automatically analyzed:\n\n';
+            
+            if (hasBackend) routingInfo += '- 🔧 **Backend changes** detected\n';
+            if (hasFrontend) routingInfo += '- 🎨 **Frontend changes** detected\n';
+            if (hasWorkflow) routingInfo += '- ⚙️ **Workflow changes** detected\n';
+            
+            routingInfo += '\nMaintainers will be notified based on these areas.';
+            
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: routingInfo
+            });

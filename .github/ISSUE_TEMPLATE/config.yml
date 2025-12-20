@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 GitHub Discussions
+    url: https://github.com/onenoly1010/quantum-pi-forge-ignited/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: 📖 Documentation
+    url: https://github.com/onenoly1010/quantum-pi-forge-ignited/blob/main/README.md
+    about: Check out the project documentation and guides
+  - name: 🔐 Private Security Report
+    url: https://github.com/onenoly1010/quantum-pi-forge-ignited/security/advisories/new
+    about: Report a security vulnerability privately (GitHub Security Advisories)

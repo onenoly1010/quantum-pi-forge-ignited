@@ -1,0 +1,143 @@
+name: 🐛 Bug Report
+description: Report a bug or issue with Quantum Pi Forge
+title: "[Bug]: "
+labels: ["bug", "needs-triage", "agent-review"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! This issue will be automatically routed to our agent system for initial triage and analysis.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe the bug...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen
+      placeholder: What should have happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened
+      placeholder: What actually happened?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component Affected
+      description: Which part of the system is affected?
+      options:
+        - Backend API (server.js)
+        - Frontend (index.html)
+        - Pi Network Integration
+        - Security/Blacklist System
+        - Netlify Deployment
+        - GitHub Workflows
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How severe is this bug?
+      options:
+        - Critical - System is down or unusable
+        - High - Major feature broken
+        - Medium - Feature partially broken
+        - Low - Minor issue or cosmetic
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Environment details where the bug occurs
+      placeholder: |
+        - OS: [e.g., Windows 10, macOS 13, Ubuntu 22.04]
+        - Node.js version: [e.g., 18.x]
+        - Browser: [e.g., Chrome 120, Safari 17]
+        - Pi SDK version: [e.g., 2.0]
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error Logs
+      description: Paste any relevant error messages or logs
+      placeholder: Paste error logs here...
+      render: shell
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots to help explain your problem
+      placeholder: Drag and drop images here...
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here
+      placeholder: Any additional information...
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please confirm the following before submitting
+      options:
+        - label: I have searched existing issues to ensure this is not a duplicate
+          required: true
+        - label: I have provided all required information above
+          required: true
+        - label: I have tested this on the latest version
+          required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        **Agent Routing Information**
+        
+        This issue will be automatically:
+        - 🏷️ **Labeled** based on component and severity
+        - 🤖 **Analyzed** by our triage agent
+        - 📊 **Prioritized** in the backlog
+        - 👥 **Assigned** to the appropriate team member
+        
+        You'll receive updates as agents and maintainers work on your issue.
