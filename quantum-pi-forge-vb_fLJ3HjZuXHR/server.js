@@ -12,7 +12,7 @@ app.use(bodyParser.json());
 let BLACKLIST = [];
 try {
   BLACKLIST = JSON.parse(fs.readFileSync('blacklist.json', 'utf8')) || [];
-} catch (e) {
+} catch (error) {
   BLACKLIST = [
     "GABT7EMPGNCQSZM22DIYC4FNKHUVJTXITUF6Y5HNIWPU4GA7BHT4GC5G",
     "GD5HGPHVL73EBDUD2Z4K2VDRLUBC4FFN7GOBLKPK6OPPXH6TED4TRK73"
@@ -25,10 +25,10 @@ app.get('/', (req, res) => {
 });
 
 app.post('/api/analyze', async (req, res) => {
-  const { user, amount, txId } = req.body;
+  const { user: userAddress, amount: transactionAmount, txId: transactionId } = req.body;
   
   // Block blacklisted addresses
-  if (BLACKLIST.includes(user)) {
+  if (BLACKLIST.includes(userAddress)) {
     return res.json({ 
       status: "BLOCKED", 
       risk: 100, 
@@ -37,7 +37,7 @@ app.post('/api/analyze', async (req, res) => {
   }
   
   // Block dust attacks
-  if (amount < 0.001 && amount > 0) {
+  if (transactionAmount < 0.001 && transactionAmount > 0) {
     return res.json({ 
       status: "BLOCKED", 
       risk: 85, 
@@ -46,27 +46,27 @@ app.post('/api/analyze', async (req, res) => {
   }
   
   // Real Pi Mainnet RPC verification
-  if (txId) {
+  if (transactionId) {
     try {
-      const rpcRes = await fetch('https://api.mainnet.pi.network', {
+      const rpcResponse = await fetch('https://api.mainnet.pi.network', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           jsonrpc: "2.0", 
           id: 1, 
           method: "pi_getTransaction", 
-          params: [txId] 
+          params: [transactionId] 
         })
       });
-      const data = await rpcRes.json();
-      if (data.error || !data.result) {
+      const transactionData = await rpcResponse.json();
+      if (transactionData.error || !transactionData.result) {
         return res.json({ 
           status: "BLOCKED", 
           risk: 95, 
           message: "❌ BLOCKED: Invalid Transaction - Fraud Suspected" 
         });
       }
-    } catch (err) {
+    } catch (rpcError) {
       // Fallthrough to CLEAR if RPC fails
     }
   }
