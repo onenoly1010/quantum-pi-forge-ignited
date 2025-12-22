@@ -94,10 +94,10 @@
         const BACKEND_URL = "YOUR_RAILWAY_URL_HERE"; // Will be updated after deployment
         
         const log = (message, type = 'info') => {
-            const console = document.getElementById('console-log');
+            const consoleLogElement = document.getElementById('console-log');
             const timestamp = new Date().toLocaleTimeString();
             const colorClass = type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'success';
-            console.innerHTML = `> [${timestamp}] <span class="${colorClass}">${message}</span><br>` + console.innerHTML;
+            consoleLogElement.innerHTML = `> [${timestamp}] <span class="${colorClass}">${message}</span><br>` + consoleLogElement.innerHTML;
         };
 
         // Initialize Pi SDK with Mainnet
@@ -116,10 +116,10 @@
         document.getElementById('connect-btn').onclick = async () => {
             try {
                 log("Authenticating with Pi Network...", 'info');
-                const auth = await window.Pi.authenticate(['username', 'payments'], onIncompletePaymentFound);
+                const authenticationResult = await window.Pi.authenticate(['username', 'payments'], onIncompletePaymentFound);
                 
-                log(`✅ Authenticated as: @${auth.user.username}`, 'success');
-                document.getElementById('user-status').textContent = `@${auth.user.username}`;
+                log(`✅ Authenticated as: @${authenticationResult.user.username}`, 'success');
+                document.getElementById('user-status').textContent = `@${authenticationResult.user.username}`;
                 document.getElementById('connect-btn').disabled = true;
                 document.getElementById('test-btn').disabled = false;
                 document.getElementById('connect-btn').textContent = 'SHIELD ACTIVE';
@@ -147,12 +147,12 @@
                         body: JSON.stringify(scenario)
                     });
                     
-                    const result = await response.json();
+                    const analysisResult = await response.json();
                     
-                    if (result.status === "BLOCKED") {
-                        log(`🚫 BLOCKED: ${scenario.description} - ${result.message}`, 'warning');
+                    if (analysisResult.status === "BLOCKED") {
+                        log(`🚫 BLOCKED: ${scenario.description} - ${analysisResult.message}`, 'warning');
                     } else {
-                        log(`✅ CLEAR: ${scenario.description} - ${result.message}`, 'success');
+                        log(`✅ CLEAR: ${scenario.description} - ${analysisResult.message}`, 'success');
                     }
                 } catch (error) {
                     log(`❌ Test Failed: ${error.message}`, 'error');
