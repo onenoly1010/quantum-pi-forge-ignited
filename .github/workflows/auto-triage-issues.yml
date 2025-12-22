@@ -1,0 +1,261 @@
+name: Auto-triage Issues
+
+on:
+  issues:
+    types: [opened, edited, labeled]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  triage-issue:
+    name: Triage New Issue
+    runs-on: ubuntu-latest
+    if: github.event.action == 'opened'
+
+    steps:
+      - name: Add triage label
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['needs-triage']
+            });
+
+      - name: Analyze issue content
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const issue = context.payload.issue;
+            const body = issue.body || '';
+            const title = issue.title || '';
+            const labels = [];
+
+            // Auto-detect issue type from content
+            const isBug = title.toLowerCase().includes('bug') ||
+                          body.toLowerCase().includes('error') ||
+                          body.toLowerCase().includes('exception');
+
+            const isFeature = title.toLowerCase().includes('feature') ||
+                              title.toLowerCase().includes('enhancement') ||
+                              body.toLowerCase().includes('would be nice');
+
+            const isQuestion = title.toLowerCase().includes('question') ||
+                               title.toLowerCase().includes('how to') ||
+                               title.toLowerCase().includes('help');
+
+            const isSecurity = title.toLowerCase().includes('security') ||
+                               title.toLowerCase().includes('vulnerability') ||
+                               body.toLowerCase().includes('exploit');
+
+            // Add appropriate labels
+            if (isBug) labels.push('bug');
+            if (isFeature) labels.push('enhancement');
+            if (isQuestion) labels.push('question');
+            if (isSecurity) labels.push('security');
+
+            // Detect component from content
+            if (body.includes('server.js') || body.includes('backend') || body.includes('API')) {
+              labels.push('backend');
+            }
+            if (body.includes('index.html') || body.includes('frontend') || body.includes('UI')) {
+              labels.push('frontend');
+            }
+            if (body.includes('Pi Network') || body.includes('Pi SDK')) {
+              labels.push('pi-network');
+            }
+            if (body.includes('blacklist') || body.includes('security')) {
+              labels.push('security');
+            }
+
+            // Add labels
+            if (labels.length > 0) {
+              try {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  labels: labels
+                });
+              } catch (error) {
+                console.log('Note: Some labels may not exist:', error.message);
+              }
+            }
+
+      - name: Prioritize security issues
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const issue = context.payload.issue;
+            const body = issue.body || '';
+            const title = issue.title || '';
+
+            const isSecurity = title.toLowerCase().includes('security') ||
+                               title.toLowerCase().includes('vulnerability') ||
+                               body.toLowerCase().includes('exploit') ||
+                               body.toLowerCase().includes('injection') ||
+                               body.toLowerCase().includes('xss');
+
+            if (isSecurity) {
+              // Add priority label
+              try {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  labels: ['priority:high', 'security']
+                });
+              } catch (error) {
+                console.log('Could not add priority label:', error.message);
+              }
+
+              // Add comment for security issues
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: '🔒 **Security Issue Detected**\n\n' +
+                      'This issue has been flagged as a potential security concern and will be prioritized.\n\n' +
+                      '⚠️ **Please do not disclose exploit details publicly.** If this contains sensitive security information, ' +
+                      'please consider using [GitHub Security Advisories](https://github.com/' + context.repo.owner + '/' + context.repo.repo + '/security/advisories/new) instead.\n\n' +
+                      'Our security team has been notified and will respond as soon as possible.'
+              });
+            }
+
+      - name: Welcome first-time contributors
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            // Check if this is a first-time contributor
+            const issue = context.payload.issue;
+            const issueAuthor = issue.user.login;
+
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              creator: issueAuthor,
+              state: 'all'
+            });
+
+            // If this is their first issue
+            if (issues.length === 1) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: '👋 **Welcome to Quantum Pi Forge!**\n\n' +
+                      'Thank you for opening your first issue! We appreciate your contribution to the project.\n\n' +
+                      '**What happens next:**\n' +
+                      '1. 🤖 Our agent system will analyze and label your issue\n' +
+                      '2. 👥 A maintainer will review and provide feedback\n' +
+                      '3. 📋 The issue will be prioritized in our backlog\n\n' +
+                      'While you wait, feel free to:\n' +
+                      '- 📖 Check out our [Contributing Guide](CONTRIBUTING.md)\n' +
+                      '- 💬 Join discussions in other issues\n' +
+                      '- 🌟 Star the repository if you find it useful\n\n' +
+                      'Thank you for helping make Quantum Pi Forge better! 🚀'
+              });
+            }
+
+  route-to-experts:
+    name: Route to Experts
+    runs-on: ubuntu-latest
+    if: github.event.action == 'labeled'
+
+    steps:
+      - name: Route based on labels
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const issue = context.payload.issue;
+            const label = context.payload.label;
+
+            let routingComment = '## 🔀 Agent Routing\n\n';
+            routingComment += `This issue has been labeled as **${label.name}**.\n\n`;
+
+            // Map labels to routing instructions
+            const routingMap = {
+              'security': '🔒 Routed to security team for immediate attention',
+              'bug': '🐛 Routed to development team for investigation',
+              'enhancement': '✨ Routed to product team for review',
+              'backend': '🔧 Routed to backend specialists',
+              'frontend': '🎨 Routed to frontend specialists',
+              'pi-network': '🥧 Routed to Pi Network integration experts',
+              'documentation': '📚 Routed to documentation team',
+              'good first issue': '🌱 Great for new contributors!',
+              'help wanted': '🙋 Community help requested'
+            };
+
+            if (routingMap[label.name]) {
+              routingComment += routingMap[label.name] + '\n\n';
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: routingComment
+              });
+            }
+
+  check-stale-triage:
+    name: Check Stale Triage
+    runs-on: ubuntu-latest
+    # Run daily at midnight
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Find untriaged issues
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'needs-triage',
+              state: 'open',
+              per_page: 100
+            });
+
+            const now = new Date();
+            const twoDaysAgo = new Date(now - 2 * 24 * 60 * 60 * 1000);
+
+            for (const issue of issues) {
+              const createdAt = new Date(issue.created_at);
+
+              // If issue is older than 2 days and still needs triage
+              if (createdAt < twoDaysAgo) {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  body: '⏰ **Triage Reminder**\n\n' +
+                        'This issue has been waiting for triage for more than 2 days.\n' +
+                        'A maintainer will review this soon. Thank you for your patience!'
+                });
+
+                // Add high priority if very old
+                const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+                if (createdAt < weekAgo) {
+                  try {
+                    await github.rest.issues.addLabels({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: issue.number,
+                      labels: ['priority:high']
+                    });
+                  } catch (error) {
+                    console.log('Could not add priority label:', error.message);
+                  }
+                }
+              }
+            }

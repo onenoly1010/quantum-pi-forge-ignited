@@ -1,0 +1,89 @@
+name: 📝 General Issue
+description: General questions, discussions, or issues that don't fit other categories
+title: "[General]: "
+labels: ["question", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for general questions, discussions, or issues that don't fit the bug or feature request categories.
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Issue Category
+      description: What type of issue is this?
+      options:
+        - Question - I have a question
+        - Documentation - Documentation is unclear or incomplete
+        - Discussion - I want to discuss something
+        - Configuration - Help with setup or configuration
+        - Performance - Performance concerns or optimization
+        - Best Practices - Seeking guidance on best practices
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe your question, concern, or topic
+      placeholder: What would you like to discuss or ask about?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Provide any relevant context or background
+      placeholder: |
+        - What are you trying to achieve?
+        - What have you already tried?
+        - Why is this important?
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment (if relevant)
+      description: Environment details if applicable
+      placeholder: |
+        - OS: [e.g., Windows 10, macOS 13]
+        - Node.js version: [e.g., 18.x]
+        - Deployment: [e.g., Railway, Netlify, local]
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Information
+      description: Any other information that might be helpful
+      placeholder: Links, screenshots, code examples...
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing issues and discussions
+          required: true
+        - label: I have checked the documentation
+          required: false
+        - label: This is not a bug or feature request (use those templates instead)
+          required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        **Agent Routing**
+
+        General issues are:
+        - 🏷️ **Categorized** automatically
+        - 📚 **Linked** to relevant documentation
+        - 💬 **Routed** to discussions if appropriate
+        - 👥 **Reviewed** by maintainers
+
+        For urgent issues, please use the Bug Report template.
