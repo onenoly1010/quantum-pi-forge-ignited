@@ -2,7 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const fs = require('fs').promises;
-const fsSync = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -17,6 +16,7 @@ const DEFAULT_BLACKLIST = [
 ];
 
 // Load blacklist asynchronously to avoid blocking event loop
+let blacklistLoaded = false;
 (async () => {
   try {
     const data = await fs.readFile('blacklist.json', 'utf8');
@@ -26,6 +26,7 @@ const DEFAULT_BLACKLIST = [
     BLACKLIST_SET = new Set(DEFAULT_BLACKLIST);
     await fs.writeFile('blacklist.json', JSON.stringify(DEFAULT_BLACKLIST, null, 2));
   }
+  blacklistLoaded = true;
 })();
 
 app.get('/', (req, res) => {
@@ -34,6 +35,12 @@ app.get('/', (req, res) => {
 
 app.post('/api/analyze', async (req, res) => {
   const { user: userAddress, amount: transactionAmount, txId: transactionId } = req.body;
+  
+  // Ensure blacklist is loaded before processing
+  if (!blacklistLoaded) {
+    // Blacklist still loading, use default for safety
+    BLACKLIST_SET = new Set(DEFAULT_BLACKLIST);
+  }
   
   // Block blacklisted addresses - O(1) lookup with Set
   if (BLACKLIST_SET.has(userAddress)) {
