@@ -1,24 +1,32 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const fs = require('fs');
+const fs = require('fs').promises;
+const fsSync = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors({ origin: '*' }));
 app.use(bodyParser.json());
 
-// Real Pi Mainnet Blacklist
-let BLACKLIST = [];
-try {
-  BLACKLIST = JSON.parse(fs.readFileSync('blacklist.json', 'utf8')) || [];
-} catch (error) {
-  BLACKLIST = [
-    "GABT7EMPGNCQSZM22DIYC4FNKHUVJTXITUF6Y5HNIWPU4GA7BHT4GC5G",
-    "GD5HGPHVL73EBDUD2Z4K2VDRLUBC4FFN7GOBLKPK6OPPXH6TED4TRK73"
-  ];
-  fs.writeFileSync('blacklist.json', JSON.stringify(BLACKLIST, null, 2));
-}
+// Real Pi Mainnet Blacklist - using Set for O(1) lookup performance
+let BLACKLIST_SET = new Set();
+const DEFAULT_BLACKLIST = [
+  "GABT7EMPGNCQSZM22DIYC4FNKHUVJTXITUF6Y5HNIWPU4GA7BHT4GC5G",
+  "GD5HGPHVL73EBDUD2Z4K2VDRLUBC4FFN7GOBLKPK6OPPXH6TED4TRK73"
+];
+
+// Load blacklist asynchronously to avoid blocking event loop
+(async () => {
+  try {
+    const data = await fs.readFile('blacklist.json', 'utf8');
+    const blacklistArray = JSON.parse(data) || DEFAULT_BLACKLIST;
+    BLACKLIST_SET = new Set(blacklistArray);
+  } catch (error) {
+    BLACKLIST_SET = new Set(DEFAULT_BLACKLIST);
+    await fs.writeFile('blacklist.json', JSON.stringify(DEFAULT_BLACKLIST, null, 2));
+  }
+})();
 
 app.get('/', (req, res) => {
   res.status(200).send('🟢 GARGOURA ENGINE: ONLINE - MAINNET ACTIVE');
@@ -27,8 +35,8 @@ app.get('/', (req, res) => {
 app.post('/api/analyze', async (req, res) => {
   const { user: userAddress, amount: transactionAmount, txId: transactionId } = req.body;
   
-  // Block blacklisted addresses
-  if (BLACKLIST.includes(userAddress)) {
+  // Block blacklisted addresses - O(1) lookup with Set
+  if (BLACKLIST_SET.has(userAddress)) {
     return res.json({ 
       status: "BLOCKED", 
       risk: 100, 
