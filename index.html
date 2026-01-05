@@ -97,7 +97,8 @@
             const consoleLogElement = document.getElementById('console-log');
             const timestamp = new Date().toLocaleTimeString();
             const colorClass = type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'success';
-            consoleLogElement.innerHTML = `> [${timestamp}] <span class="${colorClass}">${message}</span><br>` + consoleLogElement.innerHTML;
+            // Use insertAdjacentHTML for better performance - avoids re-parsing entire innerHTML
+            consoleLogElement.insertAdjacentHTML('afterbegin', `> [${timestamp}] <span class="${colorClass}">${message}</span><br>`);
         };
 
         // Initialize Pi SDK with Mainnet
@@ -146,6 +147,10 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(scenario)
                     });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
                     
                     const analysisResult = await response.json();
                     
