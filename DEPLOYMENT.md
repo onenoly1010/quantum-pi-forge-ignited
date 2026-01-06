@@ -10,9 +10,7 @@ To enable GitHub Pages for this repository:
 
 1. Go to **Settings** → **Pages**
 2. Under **Build and deployment**:
-   - **Source**: Deploy from a branch
-   - **Branch**: `main`
-   - **Folder**: `/ (root)`
+   - **Source**: GitHub Actions
 3. Click **Save**
 
 ## Automated Deployment
@@ -32,10 +30,10 @@ The repository includes a GitHub Actions workflow (`.github/workflows/deploy-git
 
 ## Files Deployed
 
-The following files are deployed to GitHub Pages:
+The following files are deployed to GitHub Pages by the automated workflow:
 - `index.html` - Main application
 - `.nojekyll` - Prevents Jekyll processing
-- Other static assets in the root directory
+- `README.md` - Rendered as the main content on the deployed site
 
 ## Cleanup from Netlify
 
@@ -65,7 +63,7 @@ To manually trigger a deployment:
 ### 404 errors?
 - Clear browser cache
 - Check that the `index.html` file exists in the repository root
-- Verify the GitHub Pages source is set to `main` branch, `/ (root)`
+- Verify the GitHub Pages source is set to GitHub Actions
 
 ### Workflow failing?
 - Check the Actions tab for error messages
@@ -87,5 +85,5 @@ GitHub Pages is **completely free** for public repositories with these limits:
 
 ---
 
-**Last Updated**: 2025-12-27  
+**Last Updated**: 2026-01-06  
 **Status**: ✅ Active

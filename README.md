@@ -14,10 +14,9 @@ This project is deployed to **GitHub Pages** for free hosting.
 The site is automatically deployed via GitHub Actions workflow (`.github/workflows/deploy-github-pages.yml`) when changes are pushed to the `main` branch.
 
 **Configuration:**
-- **Source**: Deploy from branch
-- **Branch**: `main`
-- **Path**: `/` (root)
-- **Build**: Static site (no build process needed)
+- **Source**: GitHub Actions
+- **Workflow**: `.github/workflows/deploy-github-pages.yml`
+- **Build**: Static site (no build process needed; handled by the workflow)
 
 ### Manual Deployment
 

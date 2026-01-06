@@ -59,9 +59,7 @@ The GitHub Actions workflow automatically:
 
 1. Go to **Repository Settings** → **Pages**
 2. Under **Build and deployment**:
-   - **Source**: Deploy from a branch
-   - **Branch**: `main`
-   - **Folder**: `/ (root)`
+   - **Source**: GitHub Actions
 3. Click **Save**
 
 ### Site URL:
@@ -116,6 +114,6 @@ You can add a custom domain in **Settings** → **Pages** → **Custom domain**
 
 ---
 
-**Migration Date**: December 27, 2025  
+**Migration Date**: January 6, 2026  
 **Status**: ✅ Complete and Ready for Deployment  
 **Cost**: $0.00 (Free!)
