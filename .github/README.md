@@ -145,8 +145,6 @@ The PR template (`PULL_REQUEST_TEMPLATE.md`) enforces a comprehensive handoff pr
 Configure in `Settings → Secrets and variables → Actions`:
 
 - `GITHUB_TOKEN` - Auto-provided by GitHub
-- `NETLIFY_AUTH_TOKEN` - For Netlify deployments *(optional)*
-- `NETLIFY_QPF_SITE_ID` - Netlify site ID *(optional)*
 
 ### Recommended Labels
 
