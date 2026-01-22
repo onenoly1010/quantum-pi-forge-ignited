@@ -11,7 +11,7 @@ The following workflows are provided or suggested to automate development, testi
 1. **CI/CD Pipeline** (`ci-cd.yml`) - Continuous integration and deployment
 2. **Agent-Assisted PR Review** (`agent-pr-review.yml`) - Automated PR analysis and routing
 3. **Auto-triage Issues** (`auto-triage-issues.yml`) - Automatic issue categorization and routing
-4. **Netlify Guardian** (existing) - Domain protection and deployment monitoring
+4. **GitHub Pages Deployment** (`deploy-github-pages.yml`) - Automated deployment to GitHub Pages
 
 ### 🔮 Suggested Workflows
 
@@ -392,8 +392,6 @@ Settings → Secrets and variables → Actions → New repository secret
 
 **Required Secrets:**
 - `GITHUB_TOKEN` - Automatically provided by GitHub
-- `NETLIFY_AUTH_TOKEN` - For Netlify deployments (already configured)
-- `NETLIFY_QPF_SITE_ID` - Netlify site ID (already configured)
 
 **Optional Secrets (for suggested workflows):**
 - `SLACK_WEBHOOK_URL` - For Slack notifications
