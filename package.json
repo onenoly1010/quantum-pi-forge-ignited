@@ -1,16 +1,6 @@
 {
-  "name": "quantum-pi-forge-backend",
+  "name": "quantum-pi-forge-ignited",
   "version": "1.0.0",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "body-parser": "^1.20.2"
-  },
-  "engines": {
-    "node": "24.x"
-  }
+  "private": true,
+  "description": "Static frontend for Quantum Pi Forge + Pi Network integration"
 }
